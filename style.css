@@ -1,0 +1,325 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+
+:root {
+  --bg-main: #0a0b10;
+  --panel-bg: rgba(20, 22, 33, 0.75);
+  --panel-border: rgba(38, 43, 64, 0.6);
+  --input-bg: #131520;
+
+  --text-main: #f3f4f6;
+  --text-muted: #6b7280;
+  --text-pure-white: #ffffff;
+
+  /* Culori identitare pentru categorii */
+  --accent-natura: #00f2fe; /* Cyan electric */
+  --accent-joc: #ff007f; /* Neon Pink */
+  --accent-ambient: #a855f7; /* Cyber Violet */
+  --accent-global: #10b981; /* Emerald Green pentru Master/Mix */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background-color: var(--bg-main);
+  background-image: radial-gradient(
+    circle at 50% 0%,
+    #1e1b4b 0%,
+    var(--bg-main) 70%
+  );
+  color: var(--text-main);
+  min-height: 100vh;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Header */
+header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-pure-white);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+header p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 5px;
+}
+
+/* Containerul Principal App */
+.studio-container {
+  width: 100%;
+  max-width: 1100px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+/* Master Top Panel (Visualizer + Global Controls) */
+.master-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+#visualizer {
+  width: 100%;
+  height: 100px;
+  background: #07080c;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Zona de Slidere Globale */
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.control-box {
+  background: var(--input-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 12px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-box label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+}
+
+.control-box label span {
+  font-family: "JetBrains Mono", monospace;
+  color: var(--accent-global);
+}
+
+/* Input-uri de tip Range (Slidere Studio) */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #1e2235;
+  border-radius: 3px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-main);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Sectiunea Centrala: Sound Pads */
+.sound-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.deck {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.deck h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+/* Atribuire culori per Deck */
+.deck.natura {
+  --deck-color: var(--accent-natura);
+}
+.deck.joc {
+  --deck-color: var(--accent-joc);
+}
+.deck.ambient {
+  --deck-color: var(--accent-ambient);
+}
+
+.deck h2 {
+  color: var(--deck-color);
+}
+
+/* Gridul de butoane tip Pad */
+.pad-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.pad-grid button {
+  background: var(--input-bg);
+  color: var(--text-main);
+  border: 1px solid var(--panel-border);
+  padding: 15px 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+}
+
+.pad-grid button:hover {
+  background: var(--deck-color);
+  color: #050608;
+  font-weight: 600;
+  box-shadow: 0 0 15px rgba(var(--deck-color), 0.3);
+  border-color: var(--deck-color);
+  transform: translateY(-2px);
+}
+
+.pad-grid button:active {
+  transform: translateY(0);
+}
+
+/* Panoul de Mixaj Custom (Bottom Panel) */
+.mixer-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.mixer-panel h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: var(--accent-global);
+}
+
+.mixer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.mix-channel {
+  background: var(--input-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mix-channel label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.mix-channel select {
+  background: #1a1d2e;
+  color: var(--text-main);
+  border: 1px solid var(--panel-border);
+  padding: 10px;
+  border-radius: 8px;
+  outline: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.mix-channel select:focus {
+  border-color: var(--accent-global);
+}
+
+/* Butoanele Mixerului */
+.mixer-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-mix-main {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--accent-global);
+  color: var(--accent-global);
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-mix-main:hover {
+  background: var(--accent-global);
+  color: #000;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.btn-mix-stop {
+  background: #ef4444;
+  border: 1px solid #ef4444;
+  color: var(--text-pure-white);
+}
+
+.btn-mix-stop:hover {
+  background: #dc2626;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+/* Ajustari Responsivitate */
+@media (max-width: 768px) {
+  .controls-grid,
+  .mixer-grid {
+    grid-template-columns: 1fr;
+  }
+  .pad-grid {
+    grid-template-columns: 1fr;
+  }
+}

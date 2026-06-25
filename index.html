@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Generator & Studio DAW</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1> Sound Studio</h1>
+    </header>
+
+    <main class="studio-container">
+        
+        <section class="master-panel">
+            <canvas id="visualizer"></canvas>
+            
+            <div class="controls-grid">
+                <div class="control-box">
+                    <label>Durata: <span id="durationValue">3</span>s</label>
+                    <input type="range" id="duration" min="1" max="10" value="3" step="0.5"
+                        oninput="document.getElementById('durationValue').innerText = this.value">
+                </div>
+                
+                <div class="control-box">
+                    <label>Volum: <span id="volumeValue">-10</span> dB</label>
+                    <input type="range" id="volume" min="-30" max="0" value="-10" step="1"
+                        oninput="document.getElementById('volumeValue').innerText = this.value">
+                </div>
+                
+                <div class="control-box">
+                    <label>Pitch Shift: <span id="pitchValue">0</span> semitonuri</label>
+                    <input type="range" id="pitch" min="-12" max="12" value="0" step="1"
+                        oninput="document.getElementById('pitchValue').innerText = this.value">
+                </div>
+                
+                <div class="control-box">
+                    <label>Reverb Room: <span id="reverbValue">0.4</span></label>
+                    <input type="range" id="reverb" min="0.001" max="0.99" value="0.4" step="0.05"
+                        oninput="document.getElementById('reverbValue').innerText = this.value">
+                </div>
+            </div>
+        </section>
+
+        <section class="sound-board">
+            
+            <div class="deck natura">
+                <h2> Natura</h2>
+                <div class="pad-grid">
+                    <button onclick="playRain()">Ploaie</button>
+                    <button onclick="playWind()">Vant</button>
+                    <button onclick="playThunder()">Tunet</button>
+                    <button onclick="playSnow()">Ninsoare</button>
+                </div>
+            </div>
+
+            <div class="deck joc">
+                <h2> Efecte de Joc</h2>
+                <div class="pad-grid">
+                    <button onclick="playSword()">Sabie</button>
+                    <button onclick="playExplosion()">Explozie</button>
+                    <button onclick="playMagic()">Magie</button>
+                    <button onclick="playFire()">Foc</button>
+                </div>
+            </div>
+
+            <div class="deck ambient">
+                <h2> Ambient</h2>
+                <div class="pad-grid">
+                    <button onclick="playForest()">Padure</button>
+                    <button onclick="playCave()">Pestera</button>
+                    <button onclick="playOcean()">Ocean</button>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="mixer-panel">
+            <h3> Multi-Channel Sound Mixer</h3>
+            
+            <div class="mixer-grid">
+                <div class="mix-channel">
+                    <label>Canal 1</label>
+                    <select id="mix1">
+                        <option value="none">— Niciunul —</option>
+                        <option value="rain">Ploaie</option>
+                        <option value="wind">Vant</option>
+                        <option value="thunder">Tunet</option>
+                        <option value="snow">Ninsoare</option>
+                        <option value="sword">Sabie</option>
+                        <option value="explosion">Explozie</option>
+                        <option value="magic">Magie</option>
+                        <option value="fire">Foc</option>
+                        <option value="forest">Padure</option>
+                        <option value="cave">Pestera</option>
+                        <option value="ocean">Ocean</option>
+                    </select>
+                </div>
+
+                <div class="mix-channel">
+                    <label>Canal 2</label>
+                    <select id="mix2">
+                        <option value="none">— Niciunul —</option>
+                        <option value="rain">Ploaie</option>
+                        <option value="wind">Vant</option>
+                        <option value="thunder">Tunet</option>
+                        <option value="snow">Ninsoare</option>
+                        <option value="sword">Sabie</option>
+                        <option value="explosion">Explozie</option>
+                        <option value="magic">Magie</option>
+                        <option value="fire">Foc</option>
+                        <option value="forest">Padure</option>
+                        <option value="cave">Pestera</option>
+                        <option value="ocean">Ocean</option>
+                    </select>
+                </div>
+
+                <div class="mix-channel">
+                    <label>Canal 3</label>
+                    <select id="mix3">
+                        <option value="none">— Niciunul —</option>
+                        <option value="rain">Ploaie</option>
+                        <option value="wind">Vant</option>
+                        <option value="thunder">Tunet</option>
+                        <option value="snow">Ninsoare</option>
+                        <option value="sword">Sabie</option>
+                        <option value="explosion">Explozie</option>
+                        <option value="magic">Magie</option>
+                        <option value="fire">Foc</option>
+                        <option value="forest">Padure</option>
+                        <option value="cave">Pestera</option>
+                        <option value="ocean">Ocean</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mixer-actions">
+                <button class="btn-mix-main" onclick="playMix()">▶ Porneste Mixul</button>
+                <button class="btn-mix-main btn-mix-stop" onclick="stopAll()">⏹ Opreste Tot</button>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
