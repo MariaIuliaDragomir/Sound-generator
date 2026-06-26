@@ -139,9 +139,29 @@
 
             <div class="mixer-actions">
                 <button class="btn-mix-main" onclick="playMix()">▶ Porneste Mixul</button>
-                <button class="btn-mix-main btn-mix-stop" onclick="stopAll()">⏹ Opreste Tot</button>
+                <button class="btn-mix-main btn-mix-stop" onclick="stopAll()">⏹ Opreste </button>
             </div>
         </section>
+
+        <section class="sequencer-panel">
+    <h3> Sound Sequencer</h3>
+    
+    <div class="seq-controls">
+        <button class="btn-seq" onclick="startRecording()">⏺ Incepe Inregistrarea</button>
+        <button class="btn-seq btn-seq-stop" onclick="stopRecording()">⏹ Opreste Inregistrarea</button>
+        <button class="btn-seq btn-seq-play" onclick="playSequence()">▶ Play Secventa</button>
+        <button class="btn-seq btn-seq-clear" onclick="clearSequence()">🗑 Sterge</button>
+    </div>
+
+    <div class="seq-timeline" id="seqTimeline">
+        <p class="seq-empty">Niciun sunet inregistrat inca. Apasa "Incepe Inregistrarea" si apoi un sunet.</p>
+    </div>
+
+    <div class="seq-export">
+        <input type="text" id="seqFileName" placeholder="Nume fisier..." />
+        <button class="btn-seq btn-seq-export" onclick="exportSequence()"> Export .wav</button>
+    </div>
+</section>
 
     </main>
 

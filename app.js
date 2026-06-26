@@ -452,3 +452,104 @@ async function stopAll() {
   await ctx.suspend();
   await ctx.resume();
 }
+
+// --- SEQUENCER ---
+
+// --- SEQUENCER ---
+
+let isRecording = false;
+let sequenceClips = [];
+let mediaRecorder = null;
+let recordedChunks = [];
+
+async function startRecording() {
+    await Tone.start();
+    if (isRecording) return;
+
+    recordedChunks = [];
+
+    // Folosim Web Audio API nativ in loc de Tone.Recorder
+    const dest = Tone.getContext().rawContext.createMediaStreamDestination();
+    Tone.getDestination().connect(dest);
+
+    mediaRecorder = new MediaRecorder(dest.stream);
+    mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+    document.querySelector(".seq-timeline").classList.add("recording-active");
+}
+
+function stopRecording() {
+    if (!isRecording || !mediaRecorder) return;
+
+    mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: "audio/webm" });
+        recordedChunks = [];
+
+        const clipIndex = sequenceClips.length + 1;
+        sequenceClips.push({ name: `Sunet ${clipIndex}`, blob });
+        updateTimeline();
+    };
+
+    mediaRecorder.stop();
+    isRecording = false;
+    document.querySelector(".seq-timeline").classList.remove("recording-active");
+}
+
+function updateTimeline() {
+    const timeline = document.getElementById("seqTimeline");
+
+    if (sequenceClips.length === 0) {
+        timeline.innerHTML = '<p class="seq-empty">Niciun sunet inregistrat inca. Apasa "Incepe Inregistrarea" si apoi un sunet.</p>';
+        return;
+    }
+
+    timeline.innerHTML = sequenceClips.map((clip, i) => `
+        <div class="seq-chip">
+             ${clip.name}
+            <button onclick="removeClip(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.8rem;">✕</button>
+        </div>
+    `).join('');
+}
+
+function removeClip(index) {
+    sequenceClips.splice(index, 1);
+    sequenceClips.forEach((clip, i) => { clip.name = `Sunet ${i + 1}`; });
+    updateTimeline();
+}
+
+async function playSequence() {
+    if (sequenceClips.length === 0) return;
+
+    for (const clip of sequenceClips) {
+        const url = URL.createObjectURL(clip.blob);
+        const audio = new Audio(url);
+        await new Promise(resolve => {
+            audio.onended = resolve;
+            audio.play();
+        });
+        URL.revokeObjectURL(url);
+    }
+}
+
+function exportSequence() {
+    if (sequenceClips.length === 0) return;
+
+    const combined = new Blob(sequenceClips.map(c => c.blob), { type: "audio/webm" });
+    const url = URL.createObjectURL(combined);
+    const fileName = document.getElementById("seqFileName").value.trim() || "secventa";
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileName}.webm`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function clearSequence() {
+    sequenceClips = [];
+    updateTimeline();
+}
