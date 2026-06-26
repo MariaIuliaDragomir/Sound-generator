@@ -13,7 +13,7 @@ const synthMap = {
   ocean: playOcean,
 };
 
-// Referinte pentru sunetele ambientale pornite din PAD-uri
+// Referinte pentru sunetele active
 let activeRain = null;
 let activeWind = null;
 let activeThunder = null;
@@ -22,11 +22,9 @@ let activeFire = null;
 let activeForest = null;
 let activeCave = null;
 let activeOcean = null;
-
-// REPARATIE: Lista globala pentru a tine evidenta sunetelor pornite din MIXER
 let activeMixerInstruments = [];
 
-// Setup Visualizer (Canvas)
+// Setup Visualizer
 const canvas = document.getElementById("visualizer");
 const canvasCtx = canvas.getContext("2d");
 const analyser = new Tone.Analyser("fft", 256);
@@ -43,21 +41,13 @@ function drawVisualizer() {
   canvasCtx.fillRect(0, 0, width, height);
 
   const barWidth = (width / buffer.length) * 2.5;
-  let barHeight;
   let x = 0;
 
   for (let i = 0; i < buffer.length; i++) {
-    // Convertim valorile FFT in inaltime pentru bare
-    barHeight = (buffer[i] + 140) * 2;
+    let barHeight = (buffer[i] + 140) * 2;
     if (barHeight < 0) barHeight = 0;
 
-    // Gradient modern Cyan -> Roz in functie de frecventa
-    const gradient = canvasCtx.createLinearGradient(
-      0,
-      height,
-      0,
-      height - barHeight,
-    );
+    const gradient = canvasCtx.createLinearGradient(0, height, 0, height - barHeight);
     gradient.addColorStop(0, "#00f2fe");
     gradient.addColorStop(1, "#ff007f");
 
@@ -66,360 +56,399 @@ function drawVisualizer() {
     x += barWidth;
   }
 }
-// Redimensionare canvas si pornire animatie
+
 canvas.width = canvas.parentElement.clientWidth;
 window.addEventListener("resize", () => {
   canvas.width = canvas.parentElement.clientWidth;
 });
 drawVisualizer();
 
-// Functie ajutatoare pentru aplicarea efectelor globale (Volume, Pitch, Reverb)
+function getDuration() {
+  return Number(document.getElementById("duration").value);
+}
+
+// Aplica efecte globale
 function applyEffects(sourceNode) {
   const volDb = parseFloat(document.getElementById("volume").value);
   const pitchSemi = parseInt(document.getElementById("pitch").value);
-  const reverbRoom = parseFloat(document.getElementById("reverb").value);
+  const reverbWet = parseFloat(document.getElementById("reverb").value);
 
   const volumeNode = new Tone.Volume(volDb).toDestination();
-  const reverbNode = new Tone.Reverb({
-    roomSize: reverbRoom,
-    wet: 0.5,
-  }).connect(volumeNode);
-  let lastNode = reverbNode;
+  const reverbNode = new Tone.Reverb(reverbWet * 4 + 0.1).connect(volumeNode);
+  reverbNode.wet.value = reverbWet;
 
-  if (pitchSemi !== 0) {
+  let finalNode = reverbNode;
+
+  if (pitchSemi !== 0 && sourceNode.frequency && typeof sourceNode.triggerAttack === "function") {
+    sourceNode.detune.value = pitchSemi * 100;
+  } else if (pitchSemi !== 0) {
     const pitchNode = new Tone.PitchShift(pitchSemi).connect(reverbNode);
-    lastNode = pitchNode;
+    finalNode = pitchNode;
   }
 
-  sourceNode.connect(lastNode);
+  sourceNode.connect(finalNode);
 }
 
-// --- GENERATOARE DE SUNET (PAD-URI) ---
+// --- PAD-URI (GENERATOARE DE SUNET) ---
 
-function playRain() {
-  Tone.start();
-  if (activeRain) {
-    activeRain.stop();
-    activeRain = null;
-    return;
-  }
-
-  const duration = parseFloat(document.getElementById("duration").value);
-  const rainNoise = new Tone.Noise("pink");
-  applyEffects(rainNoise);
-
-  rainNoise.start();
-  rainNoise.stop("+" + duration);
-  activeRain = rainNoise;
-  return rainNoise;
-}
-
-function playWind() {
-  Tone.start();
-  if (activeWind) {
-    activeWind.stop();
-    activeWind = null;
-    return;
-  }
-
-  const duration = parseFloat(document.getElementById("duration").value);
-  const windNoise = new Tone.Noise("brown");
-
-  const filter = new Tone.Filter({ type: "lowpass", frequency: 400, Q: 2 });
-  windNoise.connect(filter);
+async function playRain() {
+  await Tone.start();
+  if (activeRain) { activeRain.stop(); activeRain = null; return; }
+  
+  const dur = getDuration();
+  const filter = new Tone.Filter(1500, "bandpass");
+  const noise = new Tone.Noise("pink").connect(filter);
   applyEffects(filter);
+  
+  const lfo = new Tone.LFO(0.2, 1000, 2200).connect(filter.frequency).start();
 
-  // Auto-pan / miscare stanga-dreapta pentru vant
-  const lfo = new Tone.LFO(0.5, 200, 800).connect(filter.frequency).start();
-
-  windNoise.start();
-  windNoise.stop("+" + duration);
-  activeWind = windNoise;
-  return windNoise;
+  noise.start();
+  noise.stop(`+${dur}`);
+  activeRain = noise;
+  setTimeout(() => { activeRain = null; lfo.dispose(); filter.dispose(); }, dur * 1000 + 500);
+  return noise;
 }
 
-function playThunder() {
-  Tone.start();
-  const duration = parseFloat(document.getElementById("duration").value);
-
+async function playWind() {
+  await Tone.start();
+  if (activeWind) { activeWind.stop(); activeWind = null; return; }
+  
+  const dur = getDuration();
   const noise = new Tone.Noise("brown");
-  const filter = new Tone.Filter(200, "lowpass");
+  const filter = new Tone.Filter({ type: "lowpass", frequency: 250, Q: 3 });
   noise.connect(filter);
   applyEffects(filter);
-
-  // Invelis de volum descrescator pentru tunet
-  const env = new Tone.AmplitudeEnvelope({
-    attack: 0.05,
-    decay: duration - 0.1,
-    sustain: 0,
-    release: 0.1,
-  }).connect(filter);
-
-  noise.connect(env);
+  
+  const lfo = new Tone.LFO(0.15, 150, 600).connect(filter.frequency).start();
+  
   noise.start();
-  env.triggerAttackRelease(duration);
+  noise.stop(`+${dur}`);
+  activeWind = noise;
+  setTimeout(() => { activeWind = null; lfo.dispose(); filter.dispose(); }, dur * 1000 + 500);
   return noise;
 }
 
-function playSnow() {
-  Tone.start();
-  if (activeSnow) {
-    activeSnow.stop();
-    activeSnow = null;
-    return;
-  }
-
-  const duration = parseFloat(document.getElementById("duration").value);
-  const snowNoise = new Tone.Noise("white");
-  const filter = new Tone.Filter(3000, "highpass");
-
-  snowNoise.connect(filter);
-  applyEffects(filter);
-
-  snowNoise.start();
-  snowNoise.stop("+" + duration);
-  activeSnow = snowNoise;
-  return snowNoise;
-}
-
-function playSword() {
-  Tone.start();
-  const synth = new Tone.Synth({
-    oscillator: { type: "sine" },
-    envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 },
-  });
-  applyEffects(synth);
-
-  // Glissando rapid de frecventa pentru simularea taisului
-  synth.triggerAttackRelease("C6", "0.05");
-  synth.frequency.rampTo("C4", 0.15);
-  return synth;
-}
-
-function playExplosion() {
-  Tone.start();
-  const duration = parseFloat(document.getElementById("duration").value);
+// REPROIECTAT: Tunet cinematic profund cu ecou în cascadă
+async function playThunder() {
+  await Tone.start();
+  const dur = getDuration();
 
   const noise = new Tone.Noise("brown");
-  const filter = new Tone.Filter(150, "lowpass");
+  const filter = new Tone.Filter({ type: "lowpass", frequency: 300, Q: 4 });
   const env = new Tone.AmplitudeEnvelope({
-    attack: 0.01,
-    decay: duration,
+    attack: 0.001,
+    decay: Math.max(dur * 0.7, 0.3),
     sustain: 0,
-    release: 0.2,
-  }).connect(filter);
+    release: Math.max(dur * 0.3, 0.2),
+  });
 
   noise.connect(env);
+  env.connect(filter);
   applyEffects(filter);
 
   noise.start();
-  env.triggerAttackRelease(duration);
+  env.triggerAttackRelease(dur);
+  noise.stop(`+${dur + 1}`);
+  activeThunder = noise;
+
+  setTimeout(() => {
+    activeThunder = null;
+    try { noise.dispose(); filter.dispose(); env.dispose(); } catch(e) {}
+  }, dur * 1000 + 1500);
+
   return noise;
 }
 
-function playMagic() {
-  Tone.start();
-  const duration = parseFloat(document.getElementById("duration").value);
+// REPROIECTAT: Viscol tăios de munte care șuieră asimetric
+async function playSnow() {
+  await Tone.start();
+  if (activeSnow) { activeSnow.stop(); activeSnow = null; return; }
+  
+  const dur = getDuration();
+  const noise = new Tone.Noise("white");
+  
+  const windFilter = new Tone.Filter({
+    type: "bandpass",
+    frequency: 2800,
+    Q: 4
+  });
+  
+  noise.connect(windFilter);
+  applyEffects(windFilter);
+  
+  const lfo = new Tone.LFO(0.1, 1800, 3800).connect(windFilter.frequency).start();
+  
+  noise.start();
+  noise.stop(`+${dur}`);
+  activeSnow = noise;
+  
+  setTimeout(() => { 
+    activeSnow = null; 
+    lfo.dispose(); 
+    windFilter.dispose(); 
+  }, dur * 1000 + 500);
+  
+  return noise;
+}
 
-  const synth = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: "triangle" },
-    envelope: { attack: 0.1, decay: 0.3, sustain: 0.3, release: 0.5 },
+async function playSword() {
+  await Tone.start();
+  const dur = getDuration();
+
+  const swingLen = 0.4;
+  const numSwings = Math.max(1, Math.floor(dur / swingLen));
+
+  for (let i = 0; i < numSwings; i++) {
+    const time = Tone.now() + i * swingLen;
+
+    // Sunet metalic: noise scurt + ton care scade rapid
+    const noise = new Tone.Noise("white");
+    const filter = new Tone.Filter({ type: "highpass", frequency: 2000 });
+    const env = new Tone.AmplitudeEnvelope({
+      attack: 0.001, decay: 0.08, sustain: 0, release: 0.02
+    });
+    noise.connect(filter);
+    filter.connect(env);
+    applyEffects(env);
+    noise.start(time);
+    env.triggerAttack(time);
+    env.triggerRelease(time + 0.08);
+    noise.stop(time + 0.15);
+
+    const metalSynth = new Tone.MetalSynth({
+      frequency: 400,
+      envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
+      harmonicity: 5.1,
+      modulationIndex: 32,
+      resonance: 4000,
+      octaves: 1.5
+    });
+    applyEffects(metalSynth);
+    metalSynth.triggerAttackRelease("0.08", time);
+  }
+}
+
+async function playExplosion() {
+  await Tone.start();
+  const dur = getDuration();
+  
+  const noise = new Tone.Noise("brown");
+  const distortion = new Tone.Distortion(0.4);
+  const filter = new Tone.Filter(180, "lowpass").connect(distortion);
+  
+  const env = new Tone.AmplitudeEnvelope({
+    attack: 0.001,
+    decay: dur * 0.8,
+    sustain: 0,
+    release: 0.4,
+  }).connect(filter);
+  
+  noise.connect(env);
+  applyEffects(distortion);
+  
+  noise.start();
+  env.triggerAttackRelease(dur);
+  noise.stop(`+${dur + 1}`);
+  return noise;
+}
+
+async function playMagic() {
+  await Tone.start();
+  const dur = getDuration();
+  
+  const synth = new Tone.PolySynth(Tone.FMSynth, {
+    modulationIndex: 12,
+    resonance: 2,
+    envelope: { attack: 0.1, decay: 0.2, sustain: 0.2, release: 0.4 }
   });
   applyEffects(synth);
 
-  const acum = Tone.now();
-  // Arpegiu magic pe un acord major
-  synth.triggerAttackRelease("C5", "0.2", acum);
-  synth.triggerAttackRelease("E5", "0.2", acum + 0.1);
-  synth.triggerAttackRelease("G5", "0.2", acum + 0.2);
-  synth.triggerAttackRelease("C6", "0.4", acum + 0.3);
+  const notes = ["E5", "A5", "B5", "E6"];
+  const seqLen = 0.5;
+  const totalSeqs = Math.max(1, Math.floor(dur / seqLen));
+
+  for (let s = 0; s < totalSeqs; s++) {
+    notes.forEach((note, i) => {
+      synth.triggerAttackRelease(note, "0.15", Tone.now() + s * seqLen + i * 0.1);
+    });
+  }
   return synth;
 }
 
-function playFire() {
-  Tone.start();
-  if (activeFire) {
-    activeFire.stop();
-    activeFire = null;
-    return;
+// REPROIECTAT: Strat de căldură + pocnituri haotice generate prin algoritm imprevizibil
+let crackleIntervalRef = null; // Referință internă pentru a putea curăța intervalul la stopAll()
+async function playFire() {
+  await Tone.start();
+  if (activeFire) { 
+    if(crackleIntervalRef) clearInterval(crackleIntervalRef);
+    activeFire.stop(); 
+    activeFire = null; 
+    return; 
   }
+  
+  const dur = getDuration();
+  
+  const flameNoise = new Tone.Noise("pink");
+  const flameFilter = new Tone.Filter(400, "lowpass");
+  flameNoise.connect(flameFilter);
+  applyEffects(flameFilter);
+  
+  const crackleSynth = new Tone.MembraneSynth({
+    pitchDecay: 0.001,
+    octaves: 2,
+    oscillator: { type: "square" },
+    envelope: { attack: 0.001, decay: 0.01, sustain: 0, release: 0.01 }
+  });
+  
+  const crackleFilter = new Tone.Filter(2500, "highpass");
+  crackleSynth.connect(crackleFilter);
+  applyEffects(crackleFilter);
 
-  const duration = parseFloat(document.getElementById("duration").value);
-  const fireNoise = new Tone.Noise("pink");
-  const filter = new Tone.Filter(800, "bandpass");
+  flameNoise.start();
+  flameNoise.stop(`+${dur}`);
+  
+  crackleIntervalRef = setInterval(() => {
+    if (Math.random() > 0.4) {
+      try { crackleSynth.triggerAttackRelease(Math.random() * 200 + 100, "0.005"); } catch(e){}
+    }
+  }, 120);
 
-  fireNoise.connect(filter);
-  applyEffects(filter);
-
-  fireNoise.start();
-  fireNoise.stop("+" + duration);
-  activeFire = fireNoise;
-  return fireNoise;
+  activeFire = flameNoise;
+  
+  setTimeout(() => { 
+    activeFire = null; 
+    if(crackleIntervalRef) clearInterval(crackleIntervalRef);
+    flameFilter.dispose();
+    crackleSynth.dispose();
+    crackleFilter.dispose();
+  }, dur * 1000 + 500);
+  
+  return flameNoise;
 }
 
-function playForest() {
-  Tone.start();
-  if (activeForest) {
-    activeForest.stop();
-    activeForest = null;
-    return;
-  }
-
-  const duration = parseFloat(document.getElementById("duration").value);
+async function playForest() {
+  await Tone.start();
+  if (activeForest) { activeForest.releaseAll(); activeForest = null; return; }
+  
+  const dur = getDuration();
+  const delay = new Tone.FeedbackDelay("0.25", 0.4);
   const synth = new Tone.PolySynth(Tone.Synth, {
     oscillator: { type: "sine" },
-    envelope: { attack: 0.5, decay: 0.5, sustain: 0.8, release: 1 },
-  });
-  applyEffects(synth);
-
+    envelope: { attack: 0.4, decay: 0.4, sustain: 0.7, release: 0.8 },
+  }).connect(delay);
+  
+  applyEffects(delay);
   const now = Tone.now();
-  // Sunete aerisite (pasari/ecou) distantate in timp
-  synth.triggerAttackRelease("E4", duration / 3, now);
-  synth.triggerAttackRelease("A4", duration / 3, now + duration / 4);
-
+  
+  synth.triggerAttack("F4", now);
+  synth.triggerAttack("C5", now + 0.2);
+  synth.triggerAttack("E5", now + 0.4);
+  
+  synth.triggerRelease(["F4", "C5", "E5"], now + dur);
+  
   activeForest = synth;
+  setTimeout(() => { activeForest = null; delay.dispose(); }, dur * 1000 + 1000);
   return synth;
 }
 
-function playCave() {
-  Tone.start();
-  if (activeCave) {
-    activeCave.stop();
-    activeCave = null;
-    return;
-  }
-
-  const duration = parseFloat(document.getElementById("duration").value);
+async function playCave() {
+  await Tone.start();
+  if (activeCave) { activeCave.triggerRelease(); activeCave = null; return; }
+  
+  const dur = getDuration();
   const synth = new Tone.Synth({
     oscillator: { type: "triangle" },
-    envelope: { attack: 0.2, decay: 0.8, sustain: 0.1, release: 1 },
+    envelope: { attack: 0.3, decay: 0.5, sustain: 0.4, release: 1.2 },
   });
-
-  // Adaugam un delay masiv specific unei pesteri deep
-  const delay = new Tone.FeedbackDelay("0.4", 0.6);
+  
+  const delay = new Tone.FeedbackDelay("0.5", 0.7);
   synth.connect(delay);
   applyEffects(delay);
-
-  synth.triggerAttackRelease("A2", duration);
+  
+  synth.triggerAttackRelease("G2", dur);
   activeCave = synth;
+  setTimeout(() => { activeCave = null; }, dur * 1000 + 1500);
   return synth;
 }
 
-function playOcean() {
-  Tone.start();
-  if (activeOcean) {
-    activeOcean.stop();
-    activeOcean = null;
-    return;
-  }
-
-  const duration = parseFloat(document.getElementById("duration").value);
+async function playOcean() {
+  await Tone.start();
+  if (activeOcean) { activeOcean.stop(); activeOcean = null; return; }
+  
+  const dur = getDuration();
   const noise = new Tone.Noise("pink");
-  const filter = new Tone.Filter(300, "lowpass").toDestination();
-
+  const filter = new Tone.Filter(350, "lowpass");
   noise.connect(filter);
   applyEffects(filter);
-
-  // LFO lent pentru a simula miscarea valurilor (flux/reflux)
-  const lfo = new Tone.LFO(0.1, 150, 600).connect(filter.frequency).start();
-
+  
+  const lfo = new Tone.LFO(0.08, 100, 700).connect(filter.frequency).start();
+  
   noise.start();
-  noise.stop("+" + duration);
+  noise.stop(`+${dur}`);
   activeOcean = noise;
+  setTimeout(() => { activeOcean = null; lfo.dispose(); filter.dispose(); }, dur * 1000 + 500);
   return noise;
 }
 
-// --- LOGICA MIXER & REPARATIE OPRIRE ---
+// --- MIXER ---
 
-function playMix() {
-  Tone.start();
-
-  const choice1 = document.getElementById("mix1").value;
-  const choice2 = document.getElementById("mix2").value;
-  const choice3 = document.getElementById("mix3").value;
-
-  const choices = [choice1, choice2, choice3];
-
-  // Inainte de a porni un mix nou, le oprim pe cele vechi din mixer
-  activeMixerInstruments.forEach((item) => {
-    try {
-      item.triggerRelease();
-    } catch (e) {}
-    try {
-      item.stop();
-    } catch (e) {}
+async function playMix() {
+  await Tone.start();
+  activeMixerInstruments.forEach(item => {
+    try { item.stop(); } catch(e) {}
+    try { item.triggerRelease(); } catch(e) {}
   });
   activeMixerInstruments = [];
 
-  choices.forEach((choice) => {
-    if (choice !== "none" && synthMap[choice]) {
-      // Executam functia de sunet aferenta din mapare
-      const inst = synthMap[choice]();
+  const choices = [
+    document.getElementById("mix1").value,
+    document.getElementById("mix2").value,
+    document.getElementById("mix3").value,
+  ].filter(c => c !== "none");
 
-      // Daca functia a returnat un obiect valid, il salvam in lista
-      if (inst) {
-        activeMixerInstruments.push(inst);
-      }
+  for (const choice of choices) {
+    if (synthMap[choice]) {
+      const inst = await synthMap[choice]();
+      if (inst) activeMixerInstruments.push(inst);
     }
-  });
+  }
 }
 
-function stopAll() {
-  console.log("Oprim absolut toate sunetele din studio...");
-
-  // 1. Oprim pad-urile individuale active
-  if (activeRain) {
-    activeRain.stop();
-    activeRain = null;
-  }
-  if (activeWind) {
-    activeWind.stop();
-    activeWind = null;
-  }
-  if (activeThunder) {
-    activeThunder.stop();
-    activeThunder = null;
-  }
-  if (activeSnow) {
-    activeSnow.stop();
-    activeSnow = null;
-  }
-  if (activeFire) {
-    activeFire.stop();
-    activeFire = null;
-  }
-  if (activeForest) {
-    activeForest.stop();
-    activeForest = null;
-  }
-  if (activeCave) {
-    activeCave.stop();
-    activeCave = null;
-  }
-  if (activeOcean) {
-    activeOcean.stop();
-    activeOcean = null;
+async function stopAll() {
+  // Oprim intervalul pentru pocniturile focului instantaneu
+  if (crackleIntervalRef) {
+    clearInterval(crackleIntervalRef);
+    crackleIntervalRef = null;
   }
 
-  // 2. REPARATIA EFECTIVA: Trecem prin toate elementele pornite de Mixer si le inchidem safe
-  activeMixerInstruments.forEach((instrument) => {
-    if (instrument) {
-      try {
-        if (typeof instrument.triggerRelease === "function") {
-          instrument.triggerRelease();
-        }
-        if (typeof instrument.stop === "function") {
-          instrument.stop();
-        }
-      } catch (error) {
-        console.warn(
-          "Nu s-a putut opri un nod audio (era deja inchis):",
-          error,
-        );
-      }
+  // Opreste noise-uri traditionale
+  [activeRain, activeWind, activeSnow, activeFire, activeOcean, activeThunder].forEach(node => {
+    if (node) try { node.stop(); } catch(e) {}
+  });
+  activeRain = activeWind = activeSnow = activeFire = activeOcean = activeThunder = null;
+
+  // Opreste synth-uri
+  [activeForest, activeCave].forEach(node => {
+    if (node && typeof node.releaseAll === "function") {
+       try { node.releaseAll(); } catch(e){}
+    } else if (node && typeof node.triggerRelease === "function") {
+       try { node.triggerRelease(); } catch(e) {}
     }
   });
+  activeForest = activeCave = null;
 
-  // Resetam complet lista mixerului golind memoria
+  // Opreste mixerul complet
+  activeMixerInstruments.forEach(inst => {
+    if (inst) {
+      try { inst.stop(); } catch(e) {}
+      if (typeof inst.releaseAll === "function") { try { inst.releaseAll(); } catch(e){} }
+      else { try { inst.triggerRelease(); } catch(e) {} }
+    }
+  });
   activeMixerInstruments = [];
+
+  // Resetare rapida a contextului audio pentru a asigura liniste deplina
+  const ctx = Tone.getContext().rawContext;
+  await ctx.suspend();
+  await ctx.resume();
 }
